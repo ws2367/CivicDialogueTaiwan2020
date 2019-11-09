@@ -1,1 +1,1 @@
-web: gunicorn line_bot/app:app
+web: gunicorn app:app
