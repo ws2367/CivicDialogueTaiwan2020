@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from flask import Flask, request, render_template, redirect, session, abort
 from flask_heroku import Heroku
 from flask_sqlalchemy import SQLAlchemy
