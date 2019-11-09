@@ -5,6 +5,7 @@ from flask import Flask, request, render_template, redirect, session, abort
 from flask_heroku import Heroku
 from flask_sqlalchemy import SQLAlchemy
 import re
+import os
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -31,7 +32,9 @@ CANDIDATES = ["韓國瑜", "蔡英文"]
 AGE_GROUPS = ["20歲以下", "20-40歲", "40-60歲", "60歲以上", "不想回答"]
 YES_OR_NO = ["是", "否"]
 
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://localhost/civid_dialogue"
+DB_ENV = 'HEROKU_POSTGRESQL_BROWN_URL'
+
+app.config['SQLALCHEMY_DATABASE_URI'] =  os.environ[DB_ENV] if DB_ENV in os.environ else "postgresql://localhost/civid_dialogue"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
