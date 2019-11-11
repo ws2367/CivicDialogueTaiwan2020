@@ -43,6 +43,8 @@ def add_user(line_id):
 
 def edit_user(line_id, attrs, increment_step=False):
     user = User.query.filter_by(line_id=line_id).first()
+    if user is None:
+        return
     for k, v in attrs.items():
         setattr(user, k, v)
     if increment_step:
