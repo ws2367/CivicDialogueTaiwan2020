@@ -119,6 +119,7 @@ def save_image_response(step, event, line_id):
     #extract the URL from QR Code
     # if step == 5:
     #     if event.message.content_provider.type == 'line':
+    
     message_content = line_bot_api.get_message_content(event.message.id)
     tmp = io.BytesIO()
     for chunk in message_content.iter_content():
