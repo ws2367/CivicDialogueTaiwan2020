@@ -126,7 +126,7 @@ def save_image_response(step, event, line_id):
             res = decode(Image.open(tmp))
             print(res)
             if len(res) > 0:
-                edit_user(line_id, {"add_friend_url": res[0].data}, increment_step=True)
+                edit_user(line_id, {"add_friend_url": res[0].data.decode()}, increment_step=True)
 
 
 def respond_by_step(step, event, line_id):
