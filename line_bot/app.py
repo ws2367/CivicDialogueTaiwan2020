@@ -3,10 +3,11 @@
 
 from flask import Flask, request, render_template, redirect, session, abort
 from flask_heroku import Heroku
-from flask_sqlalchemy import SQLAlchemy
 import re
 import os
-
+from pyzbar.pyzbar import decode
+from PIL import Image
+import io
 from linebot import (
     LineBotApi, WebhookHandler
 )
@@ -14,13 +15,16 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    FollowEvent, MessageEvent, JoinEvent, TextMessage, TextSendMessage, ImageMessage,
+    FollowEvent, UnfollowEvent, MessageEvent, JoinEvent, TextMessage, TextSendMessage, ImageMessage,
     QuickReply, QuickReplyButton, MessageAction, URIAction, ImageSendMessage,
     TemplateSendMessage, ImageCarouselColumn, ImageCarouselTemplate, PostbackAction
 )
 
+from db import db, init_app, add_user, edit_user, get_step
+
 app = Flask(__name__)
 heroku = Heroku(app)
+init_app(app)
 
 CHANNEL_ACCESS_TOKEN = "HJ56LZmSCt9Xiv+xaZvzi37fGODgJxWADtS3sp2jOS8MNsDQUjbPUyPR6fG8mSddy2G2XMXAQtekabEwZ69Spjtq/WOyjR1DV3dYKHUIztXFYV2aOxSufCQk7PwjSS4tMoK8AY3la/qkYX4IHbRVIgdB04t89/1O/w1cDnyilFU="
 CHANNEL_SECRET = "249e5e165d90bba4918ed54e4c675a5e"
@@ -31,49 +35,6 @@ handler = WebhookHandler(CHANNEL_SECRET)
 CANDIDATES = ["韓國瑜", "蔡英文"]
 AGE_GROUPS = ["20歲以下", "20-40歲", "40-60歲", "60歲以上", "不想回答"]
 YES_OR_NO = ["是", "否"]
-
-DB_ENV = 'HEROKU_POSTGRESQL_BROWN_URL'
-
-app.config['SQLALCHEMY_DATABASE_URI'] =  os.environ[DB_ENV] if DB_ENV in os.environ else "postgresql://localhost/civid_dialogue"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-class User(db.Model):
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    step = db.Column(db.Integer, unique=False)
-    line_id = db.Column(db.String(1024), unique=True)
-    candidate = db.Column(db.String(120), unique=False)
-    age_group = db.Column(db.String(120), unique=False)
-    pts_show = db.Column(db.String(120), unique=False)
-    phone_number = db.Column(db.String(1024), unique=False)
-    add_friend_url = db.Column(db.String(1024), unique=False)
-    paired_user_id = db.Column(db.String(120), unique=False)
-
-    def __init__(self, line_id):
-        self.line_id = line_id
-        self.step = 0
-
-def add_user(line_id):
-    user = db.session.query(User).filter(User.line_id == line_id).first()
-    if not user:
-        user = User(line_id)
-        db.session.add(user)
-        db.session.commit()
-    return user
-
-def edit_user(line_id, attrs, increment_step=False):
-    user = User.query.filter_by(line_id=line_id).first()
-    for k, v in attrs.items():
-        setattr(user, k, v)
-    if increment_step:
-        user.step = user.step+1
-    db.session.commit()
-    return user
-
-def get_step(line_id):
-    user = User.query.filter_by(line_id=line_id).first()
-    return user.step if user else None
 
 
 # ========================
@@ -112,6 +73,11 @@ def share_friending_url_carousel_message():
     )
 )
 
+@handler.add(UnfollowEvent)
+def handle_unfollow(event):
+    if event.source.type == 'user':
+        line_id = event.source.user_id
+        edit_user(line_id, {'following': False})
 
 @handler.add(FollowEvent)
 def handle_follow(event):
@@ -119,6 +85,7 @@ def handle_follow(event):
     if event.source.type == 'user':
         line_id = event.source.user_id
         user = add_user(line_id)
+        edit_user(line_id, {'following': True})
         if user.step == 0: # step 0 is to send welcome msg and candidate question
             messages = [TextSendMessage(text="你好！很高興你願意加入「多粉對談」，這個活動會配對兩位支持不同政治陣營的人，讓他們進行對談，傾聽並了解彼此的想法。更多資訊請看taiwan2020.org")]
             messages.append(create_quick_replies(
@@ -128,6 +95,10 @@ def handle_follow(event):
             edit_user(line_id, {}, increment_step=True)
         else:
             reply(event, TextSendMessage(text="嗨歡迎回來！了解最新動態請到活動網站taiwan2020.org"))
+
+@handler.default()
+def default(event):
+    print(event)
 
 def save_respones(step, event, line_id):
     if step == 1:
@@ -141,7 +112,22 @@ def save_respones(step, event, line_id):
     elif step == 5:
         #extract the URL
         url = extract_url(event.message.text)
-        edit_user(line_id, {"add_friend_url": url}, increment_step=True)
+        if url is not None:
+            edit_user(line_id, {"add_friend_url": url}, increment_step=True)
+
+def save_image_response(step, event, line_id):
+    #extract the URL from QR Code
+    # if step == 5:
+    #     if event.message.content_provider.type == 'line':
+    message_content = line_bot_api.get_message_content(event.message.id)
+    tmp = io.BytesIO()
+    for chunk in message_content.iter_content():
+        tmp.write(chunk)
+    res = decode(Image.open(tmp))
+    print(res)
+    if len(res) > 0:
+        edit_user(line_id, {"add_friend_url": res[0].data}, increment_step=True)
+
 
 def respond_by_step(step, event, line_id):
     if step == 0:
@@ -161,7 +147,7 @@ def respond_by_step(step, event, line_id):
         reply(event,
               create_quick_replies(text, [[i,i] for i in YES_OR_NO]))
     elif step == 4:
-        messages = [TextSendMessage(text="感謝你報名參加！最後一步，請你分享你的Line加好友網址，下面有圖解，教你如何分享。")]
+        messages = [TextSendMessage(text="只差最後一步：需要你分享你的QR Code給我們，我們才可以讓你配對的人與你聯繫。下面有圖解，教你如何分享。")]
         messages.append(ImageSendMessage(
             original_content_url='https://taiwan2020.org/img/share_friending_url_1.PNG',
             preview_image_url='https://taiwan2020.org/img/share_friending_url_1.PNG'
@@ -198,6 +184,12 @@ def handle_message(event):
         step  = user.step
     save_respones(step, event, line_id)
     respond_by_step(step, event, line_id)
+
+@handler.add(MessageEvent, message=ImageMessage)
+def handle_message(event):
+    line_id = event.source.user_id
+    step = get_step(line_id)
+    save_image_response(step, event, line_id)
 
 
 def extract_url(text):
