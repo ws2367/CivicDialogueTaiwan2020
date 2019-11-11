@@ -117,17 +117,16 @@ def save_respones(step, event, line_id):
 
 def save_image_response(step, event, line_id):
     #extract the URL from QR Code
-    # if step == 5:
-    #     if event.message.content_provider.type == 'line':
-     
-    message_content = line_bot_api.get_message_content(event.message.id)
-    tmp = io.BytesIO()
-    for chunk in message_content.iter_content():
-        tmp.write(chunk)
-    res = decode(Image.open(tmp))
-    print(res)
-    if len(res) > 0:
-        edit_user(line_id, {"add_friend_url": res[0].data}, increment_step=True)
+    if step == 5:
+        if event.message.content_provider.type == 'line':
+            message_content = line_bot_api.get_message_content(event.message.id)
+            tmp = io.BytesIO()
+            for chunk in message_content.iter_content():
+                tmp.write(chunk)
+            res = decode(Image.open(tmp))
+            print(res)
+            if len(res) > 0:
+                edit_user(line_id, {"add_friend_url": res[0].data}, increment_step=True)
 
 
 def respond_by_step(step, event, line_id):
@@ -191,7 +190,7 @@ def handle_message(event):
     line_id = event.source.user_id
     step = get_step(line_id)
     save_image_response(step, event, line_id)
-
+    respond_by_step(step, event, line_id)
 
 def extract_url(text):
     urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', text)
