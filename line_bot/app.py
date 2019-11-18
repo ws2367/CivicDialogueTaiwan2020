@@ -5,6 +5,7 @@ from flask import Flask, request, render_template, redirect, session, abort
 from flask_heroku import Heroku
 import re
 import os
+import random
 from pyzbar.pyzbar import decode
 from PIL import Image
 import io
@@ -20,7 +21,7 @@ from linebot.models import (
     TemplateSendMessage, ImageCarouselColumn, ImageCarouselTemplate, PostbackAction
 )
 
-from db import db, init_app, add_user, edit_user, get_step
+from db import db, User, init_app, add_user, edit_user, get_step
 
 app = Flask(__name__)
 heroku = Heroku(app)
@@ -170,7 +171,7 @@ def respond_by_step(step, event, line_id):
         messages.append(TextSendMessage(text="台灣需要你！快來加入「多粉對談」(點選 https://line.me/R/ti/p/%40843xetsu)，與不同政治陣營的人對談，傾聽並了解彼此的想法。突破同溫層從自己開始。活動網址：taiwan2020.org"))
         reply(event, messages)
     elif step > 5:
-        reply(event, TextSendMessage(text="若有任何問題，請上活動網站taiwan2020.org，聯絡我們。"))
+        reply(event, TextSendMessage(text="若有任何問題，請上活動網站taiwan2020.org，或寄信到wenhshaw@gmail.com，聯絡我們。"))
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -227,6 +228,76 @@ def receive_webhook():
     except InvalidSignatureError:
         abort(400)
     return ('', 204)
+
+
+def send_pairing_message(to_id, url):
+    message = TextSendMessage(text="""恭喜你配對成功🎉！ 感謝你願意來進行「多粉對談」。
+
+請你點選連結 (%s)，將你配對的人加入好友，然後與他約一個適合的時間，進行對話。建議可以從30-60分鐘開始，透過語音交談。
+以下的談話原則可以幫助對話：
+
+1. 傾聽：積極聆聽並發問，表現你對他講話的有興趣。
+2. 使用「我」開頭：不要講「你們都」怎樣，使用「我」開頭的句子，從自己的經驗出發。
+3. 轉換批評成期望：轉換批評「某某某就完全忽略城鄉差距啊！」，成為期望「我希望某某某更關心城鄉差距」
+4. 等他講完：等對方完成他的句子再回話。
+5. 接受不自在：有差異和歧見是完全正常的，我們可以從差異和歧見學到很多
+
+我們想了些破冰問題，給你參考：
+1. 你在哪裡長大的？家庭是怎麼樣子？長大的過程如何？
+2. 你怎麼會想來參加「多粉對談」？
+3. 你對於現在生活最滿意的事是什麼？最想改變的是什麼？
+4. 你對現在的台灣最滿意的是什麼？最想改變的是什麼？
+
+兩到三題破冰之後，我們建議一些討論話題：
+1. 你支持哪一位2020總統候選人？為什麼？
+2. 你喜歡我支持的候選人任何地方嗎？
+3. 你對於目前選舉有什麼感覺？
+4. 如果你想要我這邊的候選人改變一件事情，那會是什麼？為什麼？
+5. 分享一則新聞：分享一則想要對方知道的新聞，說明原因並討論。
+
+最後，我們建議以下步驟做收尾：
+1. 詢問對方：你覺得在今天對話後有什麼感覺不同嗎？
+2. 感謝對方，謝謝他願意花時間鼓起勇氣與你對談。
+3. 分享你的回饋和談話後感受到 wenhshaw@gmail.com，我們很期待聽到你的感受與想法！
+4. 也歡迎分享你的回饋在臉書上，使用 #多粉對談 標籤。
+
+記得，我們的目標是了解在同個土地生活的彼此。我會晚一點跟你們追蹤一下狀況的。祝談話愉快！
+    """ % url)
+    push(to_id, message)
+
+def pair_users():
+    # do the ones with add_friend_url first
+    non_tsai_users = User.query.filter(User.candidate!= "蔡英文").all()
+    non_tsai_users = [u for u in non_tsai_users
+        if u.paired_user_id is None
+        and None not in [u.line_id, u.candidate, u.add_friend_url]
+    ]
+    tsai_users = User.query.filter(User.candidate== "蔡英文").all()
+    tsai_users = [u for u in tsai_users
+        if u.paired_user_id is None
+        and None not in [u.line_id, u.candidate, u.add_friend_url]
+        and u.pts_show == '是'
+    ]
+    print("num of non-tsai users: %s" % len(non_tsai_users))
+    print("num of tsai users: %s" % len(tsai_users))
+    for non_tsai in non_tsai_users:
+        tsai = random.choice(tsai_users)
+        print("Non Tsai: candidate: %s. phone: %s. url: %s. " % (non_tsai.candidate, non_tsai.phone_number, non_tsai.add_friend_url))
+        print("Tsai: candidate: %s. phone: %s. url: %s. " % (tsai.candidate, tsai.phone_number, tsai.add_friend_url))
+        v = input("continue (y/n)?")
+        if v == 'n':
+            continue
+        send_pairing_message(tsai.line_id, non_tsai.add_friend_url)
+        send_pairing_message(non_tsai.line_id, tsai.add_friend_url)
+        tsai.paired_user_id = non_tsai.id
+        non_tsai.paired_user_id = tsai.id
+        db.session.add(tsai)
+        db.session.add(non_tsai)
+        db.session.commit()
+        tsai_users.remove(tsai)
+    print("AFTER: num of tsai users: %s" % len(tsai_users))
+    print("ids of paired non tsai users: %s" % [u.id for u in non_tsai_users])
+
 
 if __name__ == "__main__":
     app.run(debug=True)
