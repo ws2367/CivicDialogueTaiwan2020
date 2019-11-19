@@ -168,7 +168,7 @@ def respond_by_step(step, event, line_id):
         reply(event, messages)
     elif step == 5:
         messages = [TextSendMessage(text="你已完成報名。一但配對成功，我們就會通知你。\n\n幫我們一起邀請更多朋友來參加「多粉對談」吧。把下面的訊息輕鬆分享出去。")]
-        messages.append(TextSendMessage(text="台灣需要你！快來加入「多粉對談」(點選 https://line.me/R/ti/p/%40843xetsu)，與不同政治陣營的人對談，傾聽並了解彼此的想法。突破同溫層從自己開始。活動網址：taiwan2020.org"))
+        messages.append(TextSendMessage(text="台灣需要你！快來加入「多粉對談」(點選 https://line.me/R/ti/p/%40843xetsu )，與不同政治陣營的人對談，傾聽並了解彼此的想法。突破同溫層從自己開始。活動網址：taiwan2020.org"))
         reply(event, messages)
     elif step > 5:
         reply(event, TextSendMessage(text="若有任何問題，請上活動網站taiwan2020.org，或寄信到wenhshaw@gmail.com，聯絡我們。"))
@@ -234,7 +234,7 @@ def send_pairing_message(to_id, contact, line_or_phone='line'):
     if line_or_phone == 'line':
         message = TextSendMessage(text="""恭喜你配對成功🎉！ 感謝你願意來進行「多粉對談」。
 
-請你點選連結 (%s)，將你配對的人加入好友，然後與他約一個適合的時間，進行對話。建議可以從30-60分鐘開始，透過語音交談。
+請你點選連結 (%s )，將你配對的人加入好友，然後與他約一個適合的時間，進行對話。建議可以從30-60分鐘開始，透過語音交談。
 以下的談話原則可以幫助對話：
 
 1. 傾聽：積極聆聽並發問，表現你對他講話的有興趣。
@@ -267,7 +267,7 @@ def send_pairing_message(to_id, contact, line_or_phone='line'):
     elif line_or_phone == 'phone':
         message = TextSendMessage(text="""恭喜你配對成功🎉！ 感謝你願意來進行「多粉對談」。
 
-請你打電話或傳訊息給你配對的人 (%s)，與他約一個適合的時間對話。他也收到了這份訊息，所以已有準備與你聯絡。建議可以從30-60分鐘開始，透過電話交談。
+請你打電話或傳訊息給你配對的人 (%s )，與他約一個適合的時間對話。他也收到了這份訊息，所以已有準備與你聯絡。建議可以從30-60分鐘開始，透過電話交談。
 以下的談話原則可以幫助對話：
 
 1. 傾聽：積極聆聽並發問，表現你對他講話的有興趣。
