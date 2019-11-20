@@ -144,7 +144,7 @@ def respond_by_step(step, event, line_id):
     elif step == 2:
         reply(event, TextSendMessage(text="你的電話號碼是？"))
     elif step == 3:
-        text = "你是否願意參加公視的紀錄行動？\n我們與公視合作，正在策劃一個節目內容，記錄對談過程。如果你有意願參加，請選「是」。我們會提供更多細節。"
+        text = "你是否願意參加公視的紀錄行動？\n我們與公視合作，正在策劃一個節目內容，記錄對談過程。如果你有意願參加，請選「是」。留意後續的 Line 加好友通知，會有「公視P#新聞實驗室」的夥伴跟你聯繫。"
         reply(event,
               create_quick_replies(text, [[i,i] for i in YES_OR_NO]))
     elif step == 4:
