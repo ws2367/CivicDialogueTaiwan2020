@@ -312,10 +312,21 @@ def pair_users():
         and None not in [u.line_id, u.candidate, u.add_friend_url]
         and u.pts_show == '是'
     ]
+    targeted_tsai_users = User.query.filter(User.id = 89).all()
+    targeted_tsai_users = [u for u in targeted_tsai_users
+        if u.paired_user_id is None
+        and None not in [u.line_id, u.candidate, u.add_friend_url]
+        and u.pts_show == '是'
+    ]
+
     print("num of non-tsai users: %s" % len(non_tsai_users))
     print("num of tsai users: %s" % len(tsai_users))
+    print("num of targeted tsai users: %s" % len(targeted_tsai_users))
     for non_tsai in non_tsai_users:
-        tsai = random.choice(tsai_users)
+        if len(targeted_tsai_users) > 0:
+            tsai = random.choice(targeted_tsai_users)
+        else:
+            tsai = random.choice(tsai_users)
         print("Non Tsai: candidate: %s. phone: %s. url: %s. " % (non_tsai.candidate, non_tsai.phone_number, non_tsai.add_friend_url))
         print("Tsai: candidate: %s. phone: %s. url: %s. " % (tsai.candidate, tsai.phone_number, tsai.add_friend_url))
         v = input("continue (y/n)?")
@@ -328,8 +339,12 @@ def pair_users():
         db.session.add(tsai)
         db.session.add(non_tsai)
         db.session.commit()
-        tsai_users.remove(tsai)
+        if tsai in tsai_users:
+            tsai_users.remove(tsai)
+        else:
+            targeted_tsai_users.remove(tsai)
     print("AFTER: num of tsai users: %s" % len(tsai_users))
+    print("AFTER: num of targeted tsai users: %s" % len(targeted_tsai_users))
     print("AFTER: ids of paired non tsai users: %s" % [u.id for u in non_tsai_users])
     print("Now processing ones with only phone numbers")
     non_tsai_users = User.query.filter(User.candidate!= "蔡英文").all()
