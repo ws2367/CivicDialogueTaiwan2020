@@ -312,7 +312,7 @@ def pair_users():
         and None not in [u.line_id, u.candidate, u.add_friend_url]
         and u.pts_show == '是'
     ]
-    targeted_tsai_users = User.query.filter(User.id = 89).all()
+    targeted_tsai_users = User.query.filter(User.id == 89).all()
     targeted_tsai_users = [u for u in targeted_tsai_users
         if u.paired_user_id is None
         and None not in [u.line_id, u.candidate, u.add_friend_url]
