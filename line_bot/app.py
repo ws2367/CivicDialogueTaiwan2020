@@ -306,18 +306,20 @@ def pair_users():
         if u.paired_user_id is None
         and None not in [u.line_id, u.candidate, u.add_friend_url]
     ]
-    tsai_users = User.query.filter(User.candidate== "蔡英文").all()
-    tsai_users = [u for u in tsai_users
-        if u.paired_user_id is None
-        and None not in [u.line_id, u.candidate, u.add_friend_url]
-        and u.pts_show == '是'
-    ]
     targeted_tsai_users = User.query.filter(User.id == 89).all()
     targeted_tsai_users = [u for u in targeted_tsai_users
         if u.paired_user_id is None
         and None not in [u.line_id, u.candidate, u.add_friend_url]
         and u.pts_show == '是'
     ]
+    tsai_users = User.query.filter(User.candidate== "蔡英文").all()
+    tsai_users = [u for u in tsai_users
+        if u.paired_user_id is None
+        and None not in [u.line_id, u.candidate, u.add_friend_url]
+        and u.pts_show == '是'
+        and u.id not in [a.id for a in targeted_tsai_users]
+    ]
+
 
     print("num of non-tsai users: %s" % len(non_tsai_users))
     print("num of tsai users: %s" % len(tsai_users))
