@@ -88,14 +88,14 @@ def handle_follow(event):
         user = add_user(line_id)
         edit_user(line_id, {'following': True})
         if user.step == 0: # step 0 is to send welcome msg and candidate question
-            messages = [TextSendMessage(text="你好！很高興你願意加入「多粉對談」，這個活動會配對兩位支持不同政治陣營的人，讓他們進行對談，傾聽並了解彼此的想法。更多資訊請看taiwan2020.org")]
+            messages = [TextSendMessage(text="你好！很高興你願意加入「多粉對談」，這個活動會配對兩位支持不同政治陣營的人，讓他們進行對談，傾聽並了解彼此的想法。更多資訊請看 taiwan2020.org")]
             messages.append(create_quick_replies(
                 "2020台灣總統大選你支持哪位候選人？",
                 [[i,i] for i in CANDIDATES]))
             reply(event, messages)
             edit_user(line_id, {}, increment_step=True)
         else:
-            reply(event, TextSendMessage(text="嗨歡迎回來！了解最新動態請到活動網站taiwan2020.org"))
+            reply(event, TextSendMessage(text="嗨歡迎回來！了解最新動態請到活動網站 taiwan2020.org"))
 
 @handler.default()
 def default(event):
@@ -168,10 +168,10 @@ def respond_by_step(step, event, line_id):
         reply(event, messages)
     elif step == 5:
         messages = [TextSendMessage(text="你已完成報名。一但配對成功，我們就會通知你。\n\n幫我們一起邀請更多朋友來參加「多粉對談」吧。把下面的訊息輕鬆分享出去。")]
-        messages.append(TextSendMessage(text="台灣需要你！快來加入「多粉對談」(點選 https://line.me/R/ti/p/%40843xetsu )，與不同政治陣營的人對談，傾聽並了解彼此的想法。突破同溫層從自己開始。活動網址：taiwan2020.org"))
+        messages.append(TextSendMessage(text="台灣需要你！快來加入「多粉對談」(點選 https://line.me/R/ti/p/%40843xetsu )，與不同政治陣營的人對談，傾聽並了解彼此的想法。突破同溫層從自己開始。活動網址： taiwan2020.org"))
         reply(event, messages)
     elif step > 5:
-        reply(event, TextSendMessage(text="若有任何問題，請上活動網站taiwan2020.org，或寄信到wenhshaw@gmail.com，聯絡我們。"))
+        reply(event, TextSendMessage(text="若有任何問題，請上活動網站 taiwan2020.org ，或寄信到 wenhshaw@gmail.com，聯絡我們。"))
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -229,6 +229,16 @@ def receive_webhook():
         abort(400)
     return ('', 204)
 
+
+def send_feedback_message(to_id):
+    url = "https://wenshaw.typeform.com/to/mCgZ2z?id=%s" % to_id
+    message = TextSendMessage(text="""嗨你好！參與對談的朋友。
+非常感謝你參與「多粉對談」！我們想誠摯邀請您將這次對談的感想或建議告訴我們。
+我們將會擇取部分內容，張貼在多粉對談網站，和公視「透視大選」專題的「多粉對談」分頁中。徵求時間為即日起至12/22(日)結束為止。
+請點選此處開始問卷： %s
+填寫此回饋問卷代表你願意讓我們公開你的心得感想。
+    """ % url)
+    push(to_id, message)
 
 def send_pairing_message(to_id, contact, line_or_phone='line'):
     if line_or_phone == 'line':
@@ -298,6 +308,13 @@ def send_pairing_message(to_id, contact, line_or_phone='line'):
 記得，我們的目標是了解在同個土地生活的彼此。我會晚一點跟你們追蹤一下狀況的。祝談話愉快！
     """ % contact)
     push(to_id, message)
+
+def ask_feedbacks(after_dt):
+    print("After date of %s" % after_dt)
+    users = User.query.filter(User.paired_user_id!=None, User.updated >= after_dt)
+    print("num of users: %s" % len(users))
+    for u in users:
+        send_feedback_message(u.id)
 
 def pair_users():
     # do the ones with add_friend_url first
