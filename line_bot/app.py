@@ -313,7 +313,7 @@ def send_pairing_message(to_id, contact, line_or_phone='line'):
 
 def ask_feedbacks(after_dt):
     print("After date of %s" % after_dt)
-    users = User.query.filter(User.paired_user_id!=None, User.updated >= after_dt)
+    users = User.query.filter(User.paired_user_id!=None, User.updated >= after_dt).all()
     print("num of users: %s" % len(users))
     for u in users:
         send_feedback_message(u.line_id, u.id)
