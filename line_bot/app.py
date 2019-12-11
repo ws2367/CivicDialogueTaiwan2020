@@ -230,15 +230,17 @@ def receive_webhook():
     return ('', 204)
 
 
-def send_feedback_message(to_id):
-    url = "https://wenshaw.typeform.com/to/mCgZ2z?id=%s" % to_id
-    message = TextSendMessage(text="""嗨你好！參與對談的朋友。
+def send_feedback_message(line_id, user_id):
+    url = "https://wenshaw.typeform.com/to/mCgZ2z?id=%s" % user_id
+    message = TextSendMessage(text="""嗨你好，參與對談的朋友：
+
 非常感謝你參與「多粉對談」！我們想誠摯邀請您將這次對談的感想或建議告訴我們。
 我們將會擇取部分內容，張貼在多粉對談網站，和公視「透視大選」專題的「多粉對談」分頁中。徵求時間為即日起至12/22(日)結束為止。
+
 請點選此處開始問卷： %s
 填寫此回饋問卷代表你願意讓我們公開你的心得感想。
     """ % url)
-    push(to_id, message)
+    push(line_id, message)
 
 def send_pairing_message(to_id, contact, line_or_phone='line'):
     if line_or_phone == 'line':
@@ -314,7 +316,7 @@ def ask_feedbacks(after_dt):
     users = User.query.filter(User.paired_user_id!=None, User.updated >= after_dt)
     print("num of users: %s" % len(users))
     for u in users:
-        send_feedback_message(u.id)
+        send_feedback_message(u.line_id, u.id)
 
 def pair_users():
     # do the ones with add_friend_url first
