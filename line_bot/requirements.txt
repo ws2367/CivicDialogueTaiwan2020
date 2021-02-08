@@ -2,7 +2,7 @@ Flask==1.1.1
 flask-heroku==0.1.9
 Flask-SQLAlchemy==2.4.1
 gunicorn==19.9.0
-httplib2==0.14.0
+httplib2==0.19.0
 psycopg2==2.8.4
 ptyprocess==0.5.2
 pyasn1==0.4.7
